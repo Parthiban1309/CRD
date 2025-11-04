@@ -57,6 +57,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        crd: {
+          dark: "hsl(var(--crd-dark))",
+          navy: "hsl(var(--crd-navy))",
+          blue: "hsl(var(--crd-blue))",
+          green: "hsl(var(--crd-green))",
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['Roboto Mono', 'monospace'],
+      },
+      boxShadow: {
+        'glow-blue': '0 0 20px rgba(0, 188, 212, 0.5)',
+        'glow-green': '0 0 20px rgba(0, 255, 65, 0.5)',
+        'tactical': '0 4px 20px rgba(0, 0, 0, 0.5)',
       },
       borderRadius: {
         lg: "var(--radius)",
