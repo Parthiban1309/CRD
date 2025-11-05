@@ -1,9 +1,19 @@
+import { useState } from "react";
 import Layout from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Database, BarChart3, FileText, Upload, CheckCircle } from "lucide-react";
+import { Users, Database, BarChart3, CheckCircle } from "lucide-react";
+import DataUploadPanel from "@/components/admin/DataUploadPanel";
+import CaseWorkflow from "@/components/admin/CaseWorkflow";
+import UserManagement from "@/components/admin/UserManagement";
+import SystemAnalytics from "@/components/admin/SystemAnalytics";
+import { mockUsers, mockWorkflowCases } from "@/utils/mockAdminData";
 
 const AdminDashboard = () => {
+  const [activeUsers] = useState(mockUsers.filter(u => u.isActive).length);
+  const [pendingApprovals] = useState(mockWorkflowCases.filter(c => c.stage === 'pending_review').length);
+  const [totalCases] = useState(mockWorkflowCases.length);
+
   return (
     <Layout role="admin">
       <div className="space-y-6">
@@ -26,7 +36,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Active Users</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-2xl font-bold">{activeUsers}</p>
               </div>
             </div>
           </Card>
@@ -38,7 +48,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Cases</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-2xl font-bold">{totalCases}</p>
               </div>
             </div>
           </Card>
@@ -50,7 +60,7 @@ const AdminDashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Pending Approval</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-2xl font-bold">{pendingApprovals}</p>
               </div>
             </div>
           </Card>
@@ -78,72 +88,32 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-primary" />
-                  Data Upload
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Upload and validate case data files (CSV, JSON, XML)
-                </p>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Phase 4: Drag and drop files or click to browse
-                  </p>
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-accent" />
-                  Pending Approvals
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Review and approve cases awaiting publication
-                </p>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No pending approvals</p>
-                  <p className="text-sm mt-2">Cases requiring approval will appear here</p>
-                </div>
-              </Card>
-            </div>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Recent System Activity</h3>
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No recent activity</p>
-                <p className="text-sm mt-2">System events and logs will appear here</p>
-              </div>
-            </Card>
+            <SystemAnalytics />
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Data Management</h3>
-              <p className="text-muted-foreground">
-                Phase 4: Data upload, validation, and case workflow management will be implemented here
-              </p>
-            </Card>
+            <Tabs defaultValue="upload" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="upload">Data Upload</TabsTrigger>
+                <TabsTrigger value="workflow">Case Workflow</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upload">
+                <DataUploadPanel />
+              </TabsContent>
+
+              <TabsContent value="workflow">
+                <CaseWorkflow />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">User Management</h3>
-              <p className="text-muted-foreground">
-                Phase 4: User registration, role assignment, and access control will be implemented here
-              </p>
-            </Card>
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">System Analytics</h3>
-              <p className="text-muted-foreground">
-                Phase 4: Activity metrics, performance monitoring, and usage analytics will be implemented here
-              </p>
-            </Card>
+            <SystemAnalytics />
           </TabsContent>
         </Tabs>
       </div>
