@@ -1,55 +1,48 @@
 export interface Case {
   id: string;
-  caseNumber: string;
-  crimeType: string;
-  location: {
-    address: string;
-    sector: string;
-    coordinates?: {
-      lat: number;
-      lng: number;
-    };
-  };
-  date: string;
-  description: string;
-  status: 'pending' | 'under_investigation' | 'closed' | 'archived';
+  case_number: string;
+  title: string;
+  description: string | null;
+  crime_type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  suspects?: string[];
-  evidence?: string[];
-  confidenceScore: number;
-  relatedCases?: string[];
-  timeline?: TimelineEvent[];
-  createdAt: string;
-  updatedAt: string;
+  status: 'open' | 'under_investigation' | 'closed' | 'cold_case';
+  location: string | null;
+  date_reported: string;
+  primary_suspect: string | null;
+  assigned_officer: string | null;
+  evidence_summary: string | null;
+  last_updated: string;
+  created_at: string;
+  workflow_stage: 'pending_review' | 'under_review' | 'needs_editing' | 'approved' | 'published';
 }
 
 export interface TimelineEvent {
   id: string;
-  timestamp: string;
+  case_id: string;
+  date: string;
+  event_type: string;
   description: string;
-  type: 'incident' | 'investigation' | 'evidence' | 'suspect';
+  officer: string | null;
+  created_at: string;
 }
 
 export interface SearchHistoryItem {
   id: string;
+  user_id: string;
   query: string;
-  queryType: 'voice' | 'text';
-  timestamp: string;
-  resultsCount: number;
-  relevanceScore: number;
-  isBookmarked: boolean;
+  filters: any;
+  results_count: number;
+  is_bookmarked: boolean;
+  searched_at: string;
 }
 
 export interface SearchFilters {
-  crimeTypes?: string[];
-  locations?: string[];
-  dateRange?: {
-    start: string;
-    end: string;
-  };
-  severity?: string[];
-  status?: string[];
   keywords?: string;
-  sortBy?: 'date' | 'relevance' | 'severity';
+  crimeType?: string;
+  severity?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: 'date_reported' | 'severity' | 'case_number';
   sortOrder?: 'asc' | 'desc';
 }

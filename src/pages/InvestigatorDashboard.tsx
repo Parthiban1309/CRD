@@ -1,179 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card } from "@/components/ui/card";
-import { Search, History, FileText, TrendingUp } from "lucide-react";
+import { Search, FileText, TrendingUp, Loader2 } from "lucide-react";
 import VoiceCommandCenter from "@/components/VoiceCommandCenter";
-import SearchHistory from "@/components/SearchHistory";
-import CaseSearch from "@/components/CaseSearch";
-import SearchResults from "@/components/SearchResults";
 import CaseDetailView from "@/components/CaseDetailView";
 import { ParsedCommand } from "@/utils/nlpProcessor";
 import { Case, SearchFilters } from "@/types/case";
-import { mockCases } from "@/utils/mockData";
+import { useCases } from "@/hooks/useCases";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { Button } from "@/components/ui/button";
 
 const InvestigatorDashboard = () => {
-  const [lastCommand, setLastCommand] = useState<ParsedCommand | null>(null);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters | undefined>();
+  const { cases, isLoading } = useCases(searchFilters);
+  const { addSearch } = useSearchHistory();
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [searchResults, setSearchResults] = useState<Case[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
-  const handleCommandParsed = (command: ParsedCommand) => {
-    setLastCommand(command);
-    console.log('Command received in dashboard:', command);
+  const handleCommandParsed = async (command: ParsedCommand) => {
+    console.log('Command received:', command);
     
     if (!command.needsClarification) {
-      performSearch(command);
+      // Build filters from voice command
+      const filters: SearchFilters = {};
+      
+      if (command.entities.crimeType) {
+        filters.crimeType = command.entities.crimeType;
+      }
+      
+      if (command.entities.location) {
+        filters.keywords = command.entities.location;
+      }
+      
+      if (command.entities.keywords && command.entities.keywords.length > 0) {
+        filters.keywords = command.entities.keywords.join(' ');
+      }
+      
+      setSearchFilters(filters);
+      
+      // Save to search history
+      await addSearch.mutateAsync({
+        query: command.text,
+        filters: command.entities,
+        resultsCount: cases.length
+      });
     }
-  };
-
-  const performSearch = (command?: ParsedCommand) => {
-    setIsSearching(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      let filtered = [...mockCases];
-
-      // Filter based on command if provided
-      if (command) {
-        if (command.entities.crimeType && command.entities.crimeType.length > 0) {
-          filtered = filtered.filter(c => 
-            command.entities.crimeType?.some(type => 
-              c.crimeType.toLowerCase().includes(type.toLowerCase())
-            )
-          );
-        }
-        
-        if (command.entities.location) {
-          filtered = filtered.filter(c =>
-            c.location.address.toLowerCase().includes(command.entities.location!.toLowerCase()) ||
-            c.location.sector.toLowerCase().includes(command.entities.location!.toLowerCase())
-          );
-        }
-
-        if (command.entities.keywords && command.entities.keywords.length > 0) {
-          filtered = filtered.filter(c =>
-            command.entities.keywords?.some(keyword =>
-              c.description.toLowerCase().includes(keyword.toLowerCase()) ||
-              c.crimeType.toLowerCase().includes(keyword.toLowerCase())
-            )
-          );
-        }
-      }
-
-      setSearchResults(filtered);
-      setIsSearching(false);
-      setShowSearch(false);
-    }, 800);
-  };
-
-  const handleAdvancedSearch = (filters: SearchFilters) => {
-    setIsSearching(true);
-    
-    setTimeout(() => {
-      let filtered = [...mockCases];
-
-      if (filters.crimeTypes && filters.crimeTypes.length > 0) {
-        filtered = filtered.filter(c => filters.crimeTypes?.includes(c.crimeType));
-      }
-
-      if (filters.severity && filters.severity.length > 0) {
-        filtered = filtered.filter(c => filters.severity?.includes(c.severity));
-      }
-
-      if (filters.status && filters.status.length > 0) {
-        filtered = filtered.filter(c => filters.status?.includes(c.status));
-      }
-
-      if (filters.keywords) {
-        filtered = filtered.filter(c =>
-          c.description.toLowerCase().includes(filters.keywords!.toLowerCase()) ||
-          c.crimeType.toLowerCase().includes(filters.keywords!.toLowerCase())
-        );
-      }
-
-      if (filters.dateRange?.start) {
-        filtered = filtered.filter(c => new Date(c.date) >= new Date(filters.dateRange!.start));
-      }
-
-      if (filters.dateRange?.end) {
-        filtered = filtered.filter(c => new Date(c.date) <= new Date(filters.dateRange!.end));
-      }
-
-      // Sort results
-      if (filters.sortBy === 'date') {
-        filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      } else if (filters.sortBy === 'severity') {
-        const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-        filtered.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
-      } else if (filters.sortBy === 'relevance') {
-        filtered.sort((a, b) => b.confidenceScore - a.confidenceScore);
-      }
-
-      setSearchResults(filtered);
-      setIsSearching(false);
-    }, 800);
-  };
-
-  const handleSelectQuery = (query: string) => {
-    // Re-run search from history
-    performSearch({ 
-      intent: 'search_cases',
-      entities: { keywords: [query] },
-      confidence: 0.8,
-      rawText: query,
-      needsClarification: false,
-      clarificationQuestion: ''
-    });
   };
 
   return (
     <Layout role="investigator">
       <div className="space-y-6">
-        {/* Welcome Section */}
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
             Investigator Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Voice-driven investigation tools and case management
+            Voice-powered criminal intelligence system
           </p>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="p-6">
             <div className="flex items-center gap-4">
               <div className="rounded-lg bg-primary/10 p-3">
-                <Search className="h-6 w-6 text-primary" />
+                <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Total Searches</p>
-                <p className="text-2xl font-bold">--</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-lg bg-accent/10 p-3">
-                <FileText className="h-6 w-6 text-accent" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cases Accessed</p>
-                <p className="text-2xl font-bold">--</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-lg bg-primary/10 p-3">
-                <History className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Recent Queries</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-sm text-muted-foreground">Total Cases</p>
+                <p className="text-2xl font-bold">{cases.length}</p>
               </div>
             </div>
           </Card>
@@ -184,90 +79,107 @@ const InvestigatorDashboard = () => {
                 <TrendingUp className="h-6 w-6 text-accent" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">High Priority</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-sm text-muted-foreground">Under Investigation</p>
+                <p className="text-2xl font-bold">
+                  {cases.filter(c => c.status === 'under_investigation').length}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="rounded-lg bg-primary/10 p-3">
+                <Search className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Open Cases</p>
+                <p className="text-2xl font-bold">
+                  {cases.filter(c => c.status === 'open').length}
+                </p>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Voice Command Center */}
-          <div className="lg:col-span-2">
-            <VoiceCommandCenter onCommandParsed={handleCommandParsed} />
-          </div>
+        {/* Voice Command Center */}
+        <VoiceCommandCenter onCommandParsed={handleCommandParsed} />
 
-          {/* Search History */}
-          <div className="lg:col-span-2 h-[600px]">
-            <SearchHistory onSelectQuery={handleSelectQuery} />
-          </div>
-        </div>
-
-        {/* Advanced Search */}
-        {showSearch && (
-          <CaseSearch 
-            onSearch={handleAdvancedSearch}
-            initialFilters={{}}
-          />
-        )}
-
-        {/* Quick Actions with toggleable search */}
+        {/* Cases Display */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="grid gap-3 md:grid-cols-3">
-            <button 
-              className="p-3 text-left rounded-lg border border-border hover:bg-accent transition-colors"
-              onClick={() => setShowSearch(!showSearch)}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Cases</h2>
+            <Button
+              variant="outline"
+              onClick={() => setSearchFilters(undefined)}
             >
-              <div className="flex items-center gap-3">
-                <Search className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Advanced Search</p>
-                  <p className="text-xs text-muted-foreground">Filter & refine</p>
-                </div>
-              </div>
-            </button>
-            <button 
-              className="p-3 text-left rounded-lg border border-border hover:bg-accent transition-colors"
-              onClick={() => performSearch()}
-            >
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">All Cases</p>
-                  <p className="text-xs text-muted-foreground">View database</p>
-                </div>
-              </div>
-            </button>
-            <button className="p-3 text-left rounded-lg border border-border hover:bg-accent transition-colors">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Analytics</p>
-                  <p className="text-xs text-muted-foreground">View trends</p>
-                </div>
-              </div>
-            </button>
+              Clear Filters
+            </Button>
           </div>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : cases.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No cases found. Try adjusting your search filters.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {cases.map((caseItem) => (
+                <Card
+                  key={caseItem.id}
+                  className="p-4 hover:bg-accent/5 cursor-pointer transition-colors"
+                  onClick={() => setSelectedCase(caseItem)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold">{caseItem.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Case #: {caseItem.case_number}
+                      </p>
+                      <p className="text-sm">{caseItem.description}</p>
+                    </div>
+                    <div className="flex flex-col gap-2 text-right">
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        caseItem.severity === 'critical' ? 'bg-destructive/10 text-destructive' :
+                        caseItem.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400' :
+                        caseItem.severity === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                        'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                      }`}>
+                        {caseItem.severity}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        caseItem.status === 'open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' :
+                        caseItem.status === 'under_investigation' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400' :
+                        caseItem.status === 'closed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400' :
+                        'bg-slate-100 text-slate-700 dark:bg-slate-900/20 dark:text-slate-400'
+                      }`}>
+                        {caseItem.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
+                    <span>{caseItem.crime_type}</span>
+                    <span>•</span>
+                    <span>{caseItem.location}</span>
+                    <span>•</span>
+                    <span>{new Date(caseItem.date_reported).toLocaleDateString()}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </Card>
-
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <SearchResults 
-            cases={searchResults}
-            onSelectCase={setSelectedCase}
-            isLoading={isSearching}
-          />
-        )}
-
-        {/* Case Detail Modal */}
-        <CaseDetailView
-          caseData={selectedCase}
-          open={!!selectedCase}
-          onOpenChange={(open) => !open && setSelectedCase(null)}
-        />
       </div>
+
+      {selectedCase && (
+        <CaseDetailView
+          case={selectedCase}
+          onClose={() => setSelectedCase(null)}
+        />
+      )}
     </Layout>
   );
 };
