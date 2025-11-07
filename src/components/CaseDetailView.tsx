@@ -5,8 +5,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Case } from '@/types/case';
 import { 
-  FileText, MapPin, Calendar, AlertCircle, Users, 
-  Archive, Printer, Download, TrendingUp, Clock 
+  FileText, MapPin, Calendar, AlertCircle, 
+  Printer, Download 
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -29,7 +29,7 @@ const CaseDetailView = ({ caseData, open, onOpenChange }: CaseDetailViewProps) =
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${caseData.caseNumber}.json`;
+    link.download = `${caseData.case_number}.json`;
     link.click();
   };
 
@@ -47,8 +47,8 @@ const CaseDetailView = ({ caseData, open, onOpenChange }: CaseDetailViewProps) =
     switch (status) {
       case 'closed': return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'under_investigation': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'pending': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'archived': return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      case 'open': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+      case 'cold_case': return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -60,7 +60,7 @@ const CaseDetailView = ({ caseData, open, onOpenChange }: CaseDetailViewProps) =
           <div className="flex items-start justify-between">
             <div>
               <DialogTitle className="text-2xl mb-2">
-                {caseData.caseNumber}
+                {caseData.case_number}
               </DialogTitle>
               <div className="flex gap-2">
                 <Badge className={getSeverityColor(caseData.severity)}>
@@ -93,34 +93,25 @@ const CaseDetailView = ({ caseData, open, onOpenChange }: CaseDetailViewProps) =
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Crime Type</p>
-                  <p className="font-medium">{caseData.crimeType}</p>
+                  <p className="font-medium">{caseData.crime_type}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Date</p>
+                  <p className="text-sm text-muted-foreground">Date Reported</p>
                   <p className="font-medium flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(caseData.date), 'PPP p')}
+                    {format(new Date(caseData.date_reported), 'PPP')}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    {caseData.location.address}
+                    {caseData.location || 'Not specified'}
                   </p>
-                  <p className="text-sm text-muted-foreground">{caseData.location.sector}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Confidence Score</p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary transition-all"
-                        style={{ width: `${caseData.confidenceScore * 100}%` }}
-                      />
-                    </div>
-                    <span className="font-medium">{Math.round(caseData.confidenceScore * 100)}%</span>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Assigned Officer</p>
+                  <p className="font-medium">{caseData.assigned_officer || 'Unassigned'}</p>
                 </div>
               </div>
             </div>
@@ -128,99 +119,35 @@ const CaseDetailView = ({ caseData, open, onOpenChange }: CaseDetailViewProps) =
             <Separator />
 
             {/* Description */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                Description
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">{caseData.description}</p>
-            </div>
-
-            <Separator />
-
-            {/* Suspects */}
-            {caseData.suspects && caseData.suspects.length > 0 && (
+            {caseData.description && (
               <>
                 <div>
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Suspects ({caseData.suspects.length})
+                    <AlertCircle className="h-5 w-5 text-primary" />
+                    Description
                   </h3>
-                  <ul className="space-y-2">
-                    {caseData.suspects.map((suspect, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-muted-foreground">
-                        <div className="h-2 w-2 rounded-full bg-primary" />
-                        {suspect}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-muted-foreground leading-relaxed">{caseData.description}</p>
                 </div>
                 <Separator />
               </>
             )}
 
-            {/* Evidence */}
-            {caseData.evidence && caseData.evidence.length > 0 && (
+            {/* Primary Suspect */}
+            {caseData.primary_suspect && (
               <>
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Archive className="h-5 w-5 text-primary" />
-                    Evidence Index ({caseData.evidence.length})
-                  </h3>
-                  <ul className="space-y-2">
-                    {caseData.evidence.map((item, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-muted-foreground">
-                        <div className="h-2 w-2 rounded-full bg-accent" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
+                  <h3 className="text-lg font-semibold mb-3">Primary Suspect</h3>
+                  <p className="text-muted-foreground">{caseData.primary_suspect}</p>
                 </div>
                 <Separator />
               </>
             )}
 
-            {/* Timeline */}
-            {caseData.timeline && caseData.timeline.length > 0 && (
-              <>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Timeline
-                  </h3>
-                  <div className="space-y-3 relative pl-6 before:absolute before:left-2 before:top-0 before:bottom-0 before:w-px before:bg-border">
-                    {caseData.timeline.map((event) => (
-                      <div key={event.id} className="relative">
-                        <div className="absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-primary bg-background" />
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(event.timestamp), 'PPp')}
-                        </p>
-                        <p className="font-medium">{event.description}</p>
-                        <Badge variant="outline" className="mt-1">
-                          {event.type}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <Separator />
-              </>
-            )}
-
-            {/* Related Cases */}
-            {caseData.relatedCases && caseData.relatedCases.length > 0 && (
+            {/* Evidence Summary */}
+            {caseData.evidence_summary && (
               <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Related Cases ({caseData.relatedCases.length})
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {caseData.relatedCases.map((caseId) => (
-                    <Badge key={caseId} variant="outline" className="cursor-pointer hover:bg-accent">
-                      {caseId}
-                    </Badge>
-                  ))}
-                </div>
+                <h3 className="text-lg font-semibold mb-3">Evidence Summary</h3>
+                <p className="text-muted-foreground leading-relaxed">{caseData.evidence_summary}</p>
               </div>
             )}
           </div>

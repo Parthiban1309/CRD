@@ -23,8 +23,8 @@ const InvestigatorDashboard = () => {
       // Build filters from voice command
       const filters: SearchFilters = {};
       
-      if (command.entities.crimeType) {
-        filters.crimeType = command.entities.crimeType;
+      if (command.entities.crimeType && command.entities.crimeType.length > 0) {
+        filters.crimeType = command.entities.crimeType[0];
       }
       
       if (command.entities.location) {
@@ -39,7 +39,7 @@ const InvestigatorDashboard = () => {
       
       // Save to search history
       await addSearch.mutateAsync({
-        query: command.text,
+        query: command.rawText,
         filters: command.entities,
         resultsCount: cases.length
       });
@@ -131,7 +131,7 @@ const InvestigatorDashboard = () => {
                 <Card
                   key={caseItem.id}
                   className="p-4 hover:bg-accent/5 cursor-pointer transition-colors"
-                  onClick={() => setSelectedCase(caseItem)}
+                  onClick={() => setSelectedCase(caseItem as Case)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
@@ -176,8 +176,9 @@ const InvestigatorDashboard = () => {
 
       {selectedCase && (
         <CaseDetailView
-          case={selectedCase}
-          onClose={() => setSelectedCase(null)}
+          caseData={selectedCase}
+          open={!!selectedCase}
+          onOpenChange={() => setSelectedCase(null)}
         />
       )}
     </Layout>

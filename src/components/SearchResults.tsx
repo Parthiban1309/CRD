@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Case } from '@/types/case';
 import { 
-  FileText, MapPin, Calendar, AlertTriangle, 
-  ChevronRight, Download, Bookmark, Flag 
+  FileText, MapPin, Calendar, 
+  ChevronRight, Download, Bookmark 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -101,16 +101,10 @@ const SearchResults = ({ cases, onSelectCase, isLoading }: SearchResultsProps) =
               Showing {startIndex + 1}-{Math.min(endIndex, cases.length)} of {cases.length} cases
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportResults}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button variant="outline" size="sm">
-              <Flag className="h-4 w-4 mr-2" />
-              Bulk Actions
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={exportResults}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </Card>
 
@@ -128,12 +122,12 @@ const SearchResults = ({ cases, onSelectCase, isLoading }: SearchResultsProps) =
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-lg">{caseData.caseNumber}</h4>
+                      <h4 className="font-semibold text-lg">{caseData.case_number}</h4>
                       <Badge className={getSeverityColor(caseData.severity)}>
                         {caseData.severity.toUpperCase()}
                       </Badge>
                     </div>
-                    <p className="text-xl font-medium text-primary">{caseData.crimeType}</p>
+                    <p className="text-xl font-medium text-primary">{caseData.crime_type}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -153,35 +147,32 @@ const SearchResults = ({ cases, onSelectCase, isLoading }: SearchResultsProps) =
                 <div className="grid gap-2 md:grid-cols-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{caseData.location.address}</span>
+                    <span className="truncate">{caseData.location || 'Location not specified'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4 flex-shrink-0" />
-                    <span>{format(new Date(caseData.date), 'PPP')}</span>
+                    <span>{format(new Date(caseData.date_reported), 'PPP')}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                    <span>Confidence: {Math.round(caseData.confidenceScore * 100)}%</span>
+                  <div className="text-sm text-muted-foreground">
+                    Status: {caseData.status.replace('_', ' ')}
                   </div>
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {caseData.description}
-                </p>
+                {caseData.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {caseData.description}
+                  </p>
+                )}
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{caseData.location.sector}</Badge>
                   <Badge variant="outline">{caseData.status.replace('_', ' ')}</Badge>
-                  {caseData.suspects && caseData.suspects.length > 0 && (
-                    <Badge variant="outline">{caseData.suspects.length} suspects</Badge>
+                  {caseData.primary_suspect && (
+                    <Badge variant="outline">Suspect identified</Badge>
                   )}
-                  {caseData.evidence && caseData.evidence.length > 0 && (
-                    <Badge variant="outline">{caseData.evidence.length} evidence items</Badge>
-                  )}
-                  {caseData.relatedCases && caseData.relatedCases.length > 0 && (
-                    <Badge variant="outline">{caseData.relatedCases.length} related cases</Badge>
+                  {caseData.evidence_summary && (
+                    <Badge variant="outline">Evidence available</Badge>
                   )}
                 </div>
               </div>

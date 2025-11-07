@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { History, Bookmark, Star, Trash2, Clock, Mic, FileText } from 'lucide-react';
-import { SearchHistoryItem } from '@/types/case';
-import { mockSearchHistory } from '@/utils/mockData';
+import { History, Bookmark, Star, Trash2, Clock, FileText } from 'lucide-react';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { format } from 'date-fns';
 
 interface SearchHistoryProps {
@@ -12,30 +11,26 @@ interface SearchHistoryProps {
 }
 
 const SearchHistory = ({ onSelectQuery }: SearchHistoryProps) => {
-  const [history, setHistory] = useState<SearchHistoryItem[]>(mockSearchHistory);
+  const { history, toggleBookmark, clearAll } = useSearchHistory();
   const [filter, setFilter] = useState<'all' | 'bookmarked' | 'recent'>('all');
 
   const filteredHistory = history.filter(item => {
-    if (filter === 'bookmarked') return item.isBookmarked;
+    if (filter === 'bookmarked') return item.is_bookmarked;
     if (filter === 'recent') {
       const dayAgo = new Date();
       dayAgo.setDate(dayAgo.getDate() - 1);
-      return new Date(item.timestamp) > dayAgo;
+      return new Date(item.searched_at) > dayAgo;
     }
     return true;
   });
 
-  const toggleBookmark = (id: string) => {
-    setHistory(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, isBookmarked: !item.isBookmarked } : item
-      )
-    );
+  const handleToggleBookmark = async (id: string) => {
+    await toggleBookmark.mutateAsync(id);
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (confirm('Are you sure you want to clear search history?')) {
-      setHistory([]);
+      await clearAll.mutateAsync();
     }
   };
 
@@ -99,11 +94,7 @@ const SearchHistory = ({ onSelectQuery }: SearchHistoryProps) => {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {item.queryType === 'voice' ? (
-                      <Mic className="h-4 w-4 text-primary flex-shrink-0" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    )}
+                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <p className="text-sm font-medium truncate">{item.query}</p>
                   </div>
                   <Button
@@ -112,24 +103,17 @@ const SearchHistory = ({ onSelectQuery }: SearchHistoryProps) => {
                     className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleBookmark(item.id);
+                      handleToggleBookmark(item.id);
                     }}
                   >
                     <Bookmark
-                      className={`h-3 w-3 ${item.isBookmarked ? 'fill-primary text-primary' : ''}`}
+                      className={`h-3 w-3 ${item.is_bookmarked ? 'fill-primary text-primary' : ''}`}
                     />
                   </Button>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>{format(new Date(item.timestamp), 'MMM d, HH:mm')}</span>
-                  <span>{item.resultsCount} results</span>
-                  <span className="flex items-center gap-1">
-                    <div className={`h-2 w-2 rounded-full ${
-                      item.relevanceScore > 0.8 ? 'bg-green-500' :
-                      item.relevanceScore > 0.6 ? 'bg-yellow-500' : 'bg-orange-500'
-                    }`} />
-                    {Math.round(item.relevanceScore * 100)}%
-                  </span>
+                  <span>{format(new Date(item.searched_at), 'MMM d, HH:mm')}</span>
+                  <span>{item.results_count} results</span>
                 </div>
               </div>
             ))

@@ -15,8 +15,8 @@ interface CaseSearchProps {
 
 const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {});
-  const [selectedCrimeTypes, setSelectedCrimeTypes] = useState<string[]>([]);
-  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+  const [selectedCrimeType, setSelectedCrimeType] = useState<string>('');
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
 
   const crimeTypeOptions = [
     'Armed Robbery', 'Burglary', 'Assault', 'Vehicle Theft', 
@@ -24,23 +24,7 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
   ];
 
   const severityOptions = ['low', 'medium', 'high', 'critical'];
-  const statusOptions = ['pending', 'under_investigation', 'closed', 'archived'];
-
-  const toggleCrimeType = (type: string) => {
-    const newTypes = selectedCrimeTypes.includes(type)
-      ? selectedCrimeTypes.filter(t => t !== type)
-      : [...selectedCrimeTypes, type];
-    setSelectedCrimeTypes(newTypes);
-    setFilters({ ...filters, crimeTypes: newTypes });
-  };
-
-  const toggleSeverity = (severity: string) => {
-    const newSeverities = selectedSeverities.includes(severity)
-      ? selectedSeverities.filter(s => s !== severity)
-      : [...selectedSeverities, severity];
-    setSelectedSeverities(newSeverities);
-    setFilters({ ...filters, severity: newSeverities });
-  };
+  const statusOptions = ['open', 'under_investigation', 'closed', 'cold_case'];
 
   const handleSearch = () => {
     onSearch(filters);
@@ -48,16 +32,18 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
 
   const clearFilters = () => {
     setFilters({});
-    setSelectedCrimeTypes([]);
-    setSelectedSeverities([]);
+    setSelectedCrimeType('');
+    setSelectedSeverity('');
     onSearch({});
   };
 
   const hasActiveFilters = 
-    selectedCrimeTypes.length > 0 || 
-    selectedSeverities.length > 0 || 
     filters.keywords || 
-    filters.status;
+    filters.crimeType || 
+    filters.severity || 
+    filters.status ||
+    filters.dateFrom ||
+    filters.dateTo;
 
   return (
     <Card className="p-6">
@@ -86,21 +72,28 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
           />
         </div>
 
-        {/* Crime Types */}
+        {/* Crime Type */}
         <div className="space-y-2">
-          <Label>Crime Types</Label>
-          <div className="flex flex-wrap gap-2">
-            {crimeTypeOptions.map((type) => (
-              <Badge
-                key={type}
-                variant={selectedCrimeTypes.includes(type) ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => toggleCrimeType(type)}
-              >
-                {type}
-              </Badge>
-            ))}
-          </div>
+          <Label htmlFor="crimeType">Crime Type</Label>
+          <Select
+            value={selectedCrimeType}
+            onValueChange={(value) => {
+              setSelectedCrimeType(value);
+              setFilters({ ...filters, crimeType: value === 'all' ? undefined : value });
+            }}
+          >
+            <SelectTrigger id="crimeType">
+              <SelectValue placeholder="All crime types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All crime types</SelectItem>
+              {crimeTypeOptions.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Severity */}
@@ -110,9 +103,13 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
             {severityOptions.map((severity) => (
               <Badge
                 key={severity}
-                variant={selectedSeverities.includes(severity) ? 'default' : 'outline'}
+                variant={selectedSeverity === severity ? 'default' : 'outline'}
                 className="cursor-pointer capitalize"
-                onClick={() => toggleSeverity(severity)}
+                onClick={() => {
+                  const newSeverity = selectedSeverity === severity ? '' : severity;
+                  setSelectedSeverity(newSeverity);
+                  setFilters({ ...filters, severity: newSeverity || undefined });
+                }}
               >
                 {severity}
               </Badge>
@@ -125,8 +122,8 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
           <div className="space-y-2">
             <Label htmlFor="status">Case Status</Label>
             <Select
-              value={filters.status?.[0] || ''}
-              onValueChange={(value) => setFilters({ ...filters, status: value ? [value] : undefined })}
+              value={filters.status || 'all'}
+              onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value })}
             >
               <SelectTrigger id="status">
                 <SelectValue placeholder="All statuses" />
@@ -145,16 +142,16 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
           <div className="space-y-2">
             <Label htmlFor="sortBy">Sort By</Label>
             <Select
-              value={filters.sortBy || 'date'}
+              value={filters.sortBy || 'date_reported'}
               onValueChange={(value) => setFilters({ ...filters, sortBy: value as any })}
             >
               <SelectTrigger id="sortBy">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="date_reported">Date Reported</SelectItem>
                 <SelectItem value="severity">Severity</SelectItem>
+                <SelectItem value="case_number">Case Number</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -170,21 +167,15 @@ const CaseSearch = ({ onSearch, initialFilters }: CaseSearchProps) => {
             <div>
               <Input
                 type="date"
-                value={filters.dateRange?.start || ''}
-                onChange={(e) => setFilters({
-                  ...filters,
-                  dateRange: { ...filters.dateRange, start: e.target.value, end: filters.dateRange?.end || '' }
-                })}
+                value={filters.dateFrom || ''}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
               />
             </div>
             <div>
               <Input
                 type="date"
-                value={filters.dateRange?.end || ''}
-                onChange={(e) => setFilters({
-                  ...filters,
-                  dateRange: { ...filters.dateRange, start: filters.dateRange?.start || '', end: e.target.value }
-                })}
+                value={filters.dateTo || ''}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
               />
             </div>
           </div>
