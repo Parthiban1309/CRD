@@ -1,1 +1,10 @@
 project_id = "tkwdjnpqlkxykvswgbok"
+
+[functions.analyze-case]
+verify_jwt = true
+
+[functions.suggest-actions]
+verify_jwt = true
+
+[functions.match-case]
+verify_jwt = true
